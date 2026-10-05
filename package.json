@@ -10,9 +10,9 @@
     "test": "node --experimental-vm-modules --test tests/*.test.js",
     "postinstall": "prisma generate"
   },
-  "keywords": [],
-  "author": "",
-  "license": "ISC",
+  "overrides": {
+    "jose": "5.10.0"
+  },
   "dependencies": {
     "@prisma/adapter-pg": "^7.10.0",
     "@prisma/client": "^7.10.0",

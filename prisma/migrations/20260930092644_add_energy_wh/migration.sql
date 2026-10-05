@@ -1,0 +1,2 @@
+-- AlterTable
+ALTER TABLE "BatteryReading" ADD COLUMN     "energyWh" DOUBLE PRECISION NOT NULL DEFAULT 0;

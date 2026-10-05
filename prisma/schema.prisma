@@ -1,0 +1,178 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// =====================================================
+// USER ROLE
+// =====================================================
+
+enum UserRole {
+  USER
+  GUEST
+  DEMO
+  ADMIN
+}
+
+// =====================================================
+// USER
+// =====================================================
+
+model User {
+  id String @id @default(uuid())
+
+  firebaseUid String? @unique
+
+  name  String?
+  email String? @unique
+
+  role UserRole @default(USER)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+
+  vehicles Vehicle[]
+}
+
+// =====================================================
+// VEHICLE
+// =====================================================
+
+model Vehicle {
+  id String @id @default(uuid())
+
+  userId String
+
+  vehicleName String
+
+  batteryId String @unique
+
+  batteryCapacityKWh Float @default(15)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  readings      BatteryReading[]
+  predictions   AIPrediction[]
+  cycleFeatures BatteryCycleFeature[]
+  batteryState  BatteryState?
+
+  @@index([userId])
+}
+
+// =====================================================
+// BATTERY READING
+// =====================================================
+
+model BatteryReading {
+  id String @id @default(uuid())
+
+  batteryId String
+
+  voltage     Float
+  current     Float
+  temperature Float
+
+  soc       Float
+  socSource String @default("backend")
+
+  // Fractional Equivalent Full Cycles
+  cycleCount Float
+
+  energyWh Float @default(0)
+
+  timestamp DateTime @default(now())
+
+  vehicle Vehicle @relation(fields: [batteryId], references: [batteryId], onDelete: Cascade)
+
+  @@index([batteryId, timestamp])
+}
+
+// =====================================================
+// AI PREDICTION
+// =====================================================
+
+model AIPrediction {
+  id String @id @default(uuid())
+
+  batteryId String
+
+  // Example:
+  // 0.95 = 95% SoH
+  soh Float
+
+  futureDegradation Float?
+
+  predictionTime DateTime
+  createdAt      DateTime @default(now())
+
+  vehicle Vehicle @relation(fields: [batteryId], references: [batteryId], onDelete: Cascade)
+
+  @@index([batteryId, predictionTime])
+}
+
+// =====================================================
+// BATTERY STATE
+// =====================================================
+
+model BatteryState {
+  id String @id @default(uuid())
+
+  batteryId String @unique
+
+  estimatedSoc Float
+
+  usedCapacityMah Float @default(0)
+
+  totalDischargedCapacityMah Float @default(0)
+
+  ratedCapacityMah Float
+
+  lastCurrent   Float?
+  lastTimestamp DateTime?
+
+  activeDischargeStartedAt DateTime?
+
+  completedDischargeCycles Int @default(0)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  vehicle Vehicle @relation(fields: [batteryId], references: [batteryId], onDelete: Cascade)
+}
+
+// =====================================================
+// BATTERY CYCLE FEATURES
+// =====================================================
+
+model BatteryCycleFeature {
+  id String @id @default(uuid())
+
+  batteryId String
+
+  cycleNumber Int
+
+  // 7 LSTM features
+  cycleInputRaw      Float
+  voltageMeanV       Float
+  voltageMinV        Float
+  currentAbsMeanA    Float
+  temperatureMeanC   Float
+  temperatureMaxC    Float
+  dischargeDurationS Float
+
+  startedAt DateTime
+  endedAt   DateTime
+
+  createdAt DateTime @default(now())
+
+  vehicle Vehicle @relation(fields: [batteryId], references: [batteryId], onDelete: Cascade)
+
+  @@unique([batteryId, cycleNumber])
+  @@index([batteryId, cycleNumber])
+}
